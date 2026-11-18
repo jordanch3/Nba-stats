@@ -4,7 +4,7 @@ from nba_api.stats.static import teams as static_teams
 from database import Base, SessionLocal, engine
 from models import Game, Team
 
-EAST = {"ATL", "BOS", "BRK", "CHA", "CHI", "CLE", "DET", "IND", "MIA", "MIL", "NYK", "ORL", "PHI", "TOR", "WAS"}
+EAST = {"ATL", "BOS", "BKN", "CHA", "CHI", "CLE", "DET", "IND", "MIA", "MIL", "NYK", "ORL", "PHI", "TOR", "WAS"}
 
 def ingest_teams(session):
     for t in static_teams.get_teams():

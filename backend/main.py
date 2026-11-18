@@ -6,6 +6,13 @@ from database import SessionLocal
 from models import Game, Team
 
 app = FastAPI(title = "NBA Stats")
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["GET"],
+)
 
 def get_db():
     with SessionLocal() as session:
