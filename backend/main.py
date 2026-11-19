@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 
 from database import SessionLocal
-from models import Game, Team
+from models import Game, Player, PlayerGame, Team
 
 app = FastAPI(title = "NBA Stats")
 from fastapi.middleware.cors import CORSMiddleware
@@ -82,3 +82,47 @@ def get_team(team_id: int, db: Session = Depends(get_db)):
         "avg scored": round(sum(r["scored"] for r in results) / n, 1) if n else 0.0,
         "avg allowed": round(sum(r["allowed"] for r in results) / n, 1) if n else 0.0,
     }
+
+@app.get("/players")
+def search_players(q: str, db: Session = Depends(get_db)):
+    players = db.scalars(select(Player).where(Player.name.ilike(f"%{q}%")).limit(20))
+    return [{"id": p.id, "name": p.name} for p in players]
+
+@app.get("/players/{player_id}")
+def get_player(player_id: int, db: Session = Depends(get_db)):
+    player = db.get(Player, player_id)
+    if player is None:
+        raise HTTPException(status_code=404, detail="Player not found")
+
+    games = db.scalars(
+        select(PlayerGame)
+        .where(PlayerGame.player_id == player_id)
+        .order_by(PlayerGame.date.desc())
+    ).all()
+
+    n = len(games)
+
+    def pct(made, att):
+        att = sum(getattr(g, att) for g in games)
+        return round(sum(getattr(g, made) for g in games) / att, 3) if att else 0.0
+    
+    return {
+        "name": player.name,
+        "games_played": n,
+        "averages": {
+            "pts": avg("pts"),
+            "reb": avg("reb"),
+            "ast": avg("ast"),
+            "minutes": avg("minutes"),
+        },
+        "shooting": {
+            "fg_pct": pct("fgm", "fga"),
+            "fg3_pct": pct("fg3m", "fg3a"),
+            "ft_pct": pct("ftm", "fta"),
+        },
+        "last_10": [
+            {"date": g.date, "pts": g.pts, "reb": g.reb, "ast": g.ast, "minutes": g.minutes}
+            for g in games[:10]
+        ],
+    }
+        
